@@ -1,0 +1,20 @@
+// My first EduScript lesson
+
+video {
+  dimensions: (1280, 720) 
+}
+
+scene "First Scene" {
+  duration: 5s
+  narration: "Hello, world! This is the first test of our engine."
+  
+  visuals {
+    text("Hello!", id: "title", at: (0, 2))
+  }
+
+  timeline {
+    at(1s) {
+      fade("title", in, duration: 1s)
+    }
+  }
+}
