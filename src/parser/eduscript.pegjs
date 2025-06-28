@@ -1,11 +1,10 @@
-// This is the top-level rule. A valid program has a video block and scenes.
-// The `...` syntax captures the matched parts into an array.
+// This is the top-level rule.
 Program
-  = _ video:VideoBlock _ scenes:SceneBlock+ _ {
+  = _ video:VideoBlock scenes:(_ SceneBlock)+ _? {
       return {
         type: "Program",
         video: video,
-        scenes: scenes
+        scenes: scenes.map(s => s[1]) 
       };
     }
 
@@ -17,10 +16,9 @@ VideoBlock
     }
 
 SceneBlock
-= "scene" _ title:StringLiteral _ "{" _ props:SceneProperties+ _ "}" { // <--- ADDED '+' HERE
-    // The reduce function correctly merges an array of property objects
-    const scene = props.reduce((acc, prop) => ({ ...acc, ...prop }), {});
-    return { type: "Scene", title: title, ...scene };
+  = "scene" _ title:StringLiteral _ "{" _ props:SceneProperties+ _ "}" {
+      const scene = props.reduce((acc, prop) => ({ ...acc, ...prop }), {});
+      return { type: "Scene", title: title, ...scene };
     }
 
 // --- Property Definitions within Blocks ---
@@ -29,9 +27,8 @@ VideoProperties
   = dimensions:Dimensions { return { dimensions } }
 
 SceneProperties
-= prop:(Duration / Narration / VisualsBlock / TimelineBlock) _ { return prop; }
+  = prop:(Duration / Narration / VisualsBlock / TimelineBlock) _ { return prop; }
 
-// A single dimension property like `dimensions: (1280, 720)`
 Dimensions
   = "dimensions" _ ":" _ "(" _ w:Integer _ "," _ h:Integer _ ")" {
       return { width: w, height: h };
@@ -51,7 +48,7 @@ VisualsBlock
     }
 
 VisualElement
-= _ element:(TextElement / CircleElement) _ { return element; }
+  = _ element:(TextElement / CircleElement) _ { return element; }
 
 TextElement
   = "text" _ "(" _ content:StringLiteral _ "," _ id:IdProperty _ "," _ at:AtProperty _ ")" {
@@ -74,7 +71,7 @@ TimelineEvent
     }
 
 AnimationCommand
-= _ cmd:FadeCommand _ { return cmd; }
+  = _ cmd:FadeCommand _ { return cmd; }
 
 FadeCommand
   = "fade" _ "(" _ target:StringLiteral _ "," _ direction:("in" / "out") _ "," _ duration:DurationProperty _ ")" {
@@ -90,7 +87,6 @@ DurationProperty = "duration" _ ":" _ val:DurationLiteral { return val }
 
 // --- Lexical Tokens / Primitives (The lowest level) ---
 
-// A number, which can be an integer or a float.
 Number "number"
   = num:$( "-"? [0-9]+ ("." [0-9]+)? ) { return parseFloat(num); }
 
@@ -103,7 +99,6 @@ StringLiteral "string"
 DurationLiteral "duration"
   = val:Number "s" { return val; }
 
-// Whitespace and Comments. The `_` rule is used everywhere to ignore them.
 _ "whitespace"
   = ( [ \t\n\r] / Comment )*
 

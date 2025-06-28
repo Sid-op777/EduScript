@@ -1,5 +1,3 @@
-// src/services/renderer.ts
-
 import type { Scene } from '../parser/parser';
 import fs from 'fs';
 import path from 'path';
@@ -35,43 +33,64 @@ export function calculateFrameState(scene: Scene, timeMs: number): FrameState {
     frameState.push({
       id: element.id,
       type: element.type,
-      opacity: 1, // Start with full opacity by default
+      opacity: 0,
       content: element.content,
       radius: element.radius,
-      // For the MVP, position is static and doesn't change
       x: element.at.x, 
       y: element.at.y,
     });
   }
 
   // 2. Apply timeline animations
-  // This is the core animation logic!
+  // for (const event of scene.timeline) {
+  //   if (event.type === 'at') {
+  //     for (const anim of event.animations) {
+  //       if (anim.type === 'fade') {
+  //         const targetElement = frameState.find(el => el.id === anim.target);
+  //         if (!targetElement) continue; // Skip if target not found
+
+  //         const animStartTime = event.time; // e.g., 1s
+  //         const animDuration = anim.duration; // e.g., 1.5s
+  //         const animEndTime = animStartTime + animDuration;
+
+  //         if (anim.direction === 'out' && animDuration === 0) {
+  //           // Special case: instant fade out (making it invisible from the start)
+  //           if (timeS >= animStartTime) {
+  //             targetElement.opacity = 0;
+  //           }
+  //         } else if (timeS >= animStartTime && timeS <= animEndTime) {
+  //           // The animation is currently active
+  //           const progress = (timeS - animStartTime) / animDuration;
+  //           if (anim.direction === 'in') {
+  //             targetElement.opacity = progress; // Fades from 0 to 1
+  //           } else { // 'out'
+  //             targetElement.opacity = 1 - progress; // Fades from 1 to 0
+  //           }
+  //         } else if (timeS > animEndTime) {
+  //           // The animation is finished, lock the final state
+  //           targetElement.opacity = (anim.direction === 'in') ? 1 : 0;
+  //         }
+  //       }
+  //     }
+  //   }
+  // }
+
   for (const event of scene.timeline) {
     if (event.type === 'at') {
       for (const anim of event.animations) {
         if (anim.type === 'fade') {
           const targetElement = frameState.find(el => el.id === anim.target);
-          if (!targetElement) continue; // Skip if target not found
+          if (!targetElement) continue;
 
-          const animStartTime = event.time; // e.g., 1s
-          const animDuration = anim.duration; // e.g., 1.5s
+          const animStartTime = event.time;
+          const animDuration = anim.duration;
           const animEndTime = animStartTime + animDuration;
 
-          if (anim.direction === 'out' && animDuration === 0) {
-            // Special case: instant fade out (making it invisible from the start)
-            if (timeS >= animStartTime) {
-              targetElement.opacity = 0;
-            }
-          } else if (timeS >= animStartTime && timeS <= animEndTime) {
-            // The animation is currently active
-            const progress = (timeS - animStartTime) / animDuration;
-            if (anim.direction === 'in') {
-              targetElement.opacity = progress; // Fades from 0 to 1
-            } else { // 'out'
-              targetElement.opacity = 1 - progress; // Fades from 1 to 0
-            }
+          // This logic now works correctly because the base opacity is 0.
+          if (timeS >= animStartTime && timeS <= animEndTime) {
+            const progress = animDuration > 0 ? (timeS - animStartTime) / animDuration : 1;
+            targetElement.opacity = (anim.direction === 'in') ? progress : 1 - progress;
           } else if (timeS > animEndTime) {
-            // The animation is finished, lock the final state
             targetElement.opacity = (anim.direction === 'in') ? 1 : 0;
           }
         }
@@ -146,7 +165,8 @@ export async function renderSceneFrames(
   videoDimensions: { width: number; height: number },
   outputDir: string,
   fps: number = 30,
-  renderScale: number 
+  renderScale: number ,
+  finalClipDuration: number
 ) {
   console.log(`\n--- Rendering Scene: "${scene.title}" [Engine: resvg] ---`);
 
@@ -156,7 +176,8 @@ export async function renderSceneFrames(
       // console.log(`[LOG] Created directory: ${outputDir}`);
     }
 
-    const totalFrames = Math.floor(scene.duration * fps);
+    const totalFrames = Math.floor(finalClipDuration * fps);
+    console.log(`[LOG] Script duration: ${scene.duration}s. Final clip duration: ${finalClipDuration.toFixed(2)}s. Rendering ${totalFrames} frames.`);
 
     const opts = {
       background: 'rgba(0, 0, 0, 1)', // Black background
@@ -187,15 +208,6 @@ export async function renderSceneFrames(
       // Write the buffer directly to a file
       await fs.promises.writeFile(framePath, pngBuffer);
 
-      // --- Optional: A nicer progress bar ---
-      const barLength = 40;
-      const progress = (i + 1) / totalFrames;
-      const filledLength = Math.round(barLength * progress);
-      const bar = '█'.repeat(filledLength) + '─'.repeat(barLength - filledLength);
-
-      process.stdout.write(
-        `\r🖼️  Rendering frames: [\x1b[32m${bar}\x1b[0m] ${i + 1}/${totalFrames}`
-      );
     }
 
     process.stdout.write('\n'); 

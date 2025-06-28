@@ -1,20 +1,42 @@
-// My first EduScript lesson
-
+// Define global video properties
 video {
   dimensions: (1280, 720) 
 }
 
-scene "First Scene" {
+// --- SCENE 1 ---
+scene "Introduction" {
   duration: 5s
-  narration: "Hello, world! This is the first test of our engine."
+  narration: "Hello, world! This is the first test of our engine. We are starting with a simple circle."
   
   visuals {
-    text("Hello!", id: "title", at: (0, 2))
+    circle(id: "main_circle", at: (0, 0), radius: 1.5)
   }
 
   timeline {
     at(0s) {
-      fade("title", in, duration: 1s)
+      fade("main_circle", out, duration: 0s)
+    }
+    at(1s) {
+      fade("main_circle", in, duration: 1s)
+    }
+    at(4s) {
+      fade("main_circle", out, duration: 1s)
+    }
+  }
+}
+
+// --- SCENE 2 ---
+scene "A Second Scene" {
+  duration: 4s
+  narration: "Now, let's show some text. This demonstrates multi-scene support."
+
+  visuals {
+    text("EduScript Rocks!", id: "title", at: (0, 0))
+  }
+
+  timeline {
+    at(0s) {
+      fade("title", in, duration: 1.5s)
     }
   }
 }

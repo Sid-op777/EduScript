@@ -24,6 +24,7 @@
     "@resvg/resvg-js": "^2.6.2",
     "@vercel/og": "^0.6.8",
     "dotenv": "^16.6.1",
+    "get-audio-duration": "^4.0.1",
     "mime": "^4.0.7",
     "wav": "^1.0.2",
     "yargs": "^18.0.0"

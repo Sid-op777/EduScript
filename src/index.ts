@@ -7,9 +7,11 @@ import path from 'path';
 
 import * as parser from './parser/parser.js';
 import type { AST, ParserError, Scene, Video } from './parser/parser';
+
 import { generateAudio } from './services/tts2';
-import { exportVideo } from './services/exporter';
+import { exportVideo, concatenateClips } from './services/exporter';
 import { renderSceneFrames } from './services/renderer';
+import { getAudioDurationInSeconds } from 'get-audio-duration';
 
 console.log('📘 EduScript Engine v0.1');
 
@@ -23,18 +25,20 @@ yargs(hideBin(process.argv))
         type: 'string',
       });
     },
-    // The handler function is async to use await
-    async (argv) => {
-      console.log('Starting build process...');
-      const filepath = argv.filepath as string;
-      const outputDir = 'temp'; // A directory for all our temporary files
 
+    async (argv) => {
+      const startTime = Date.now();
+      console.log('Starting build process...');
+
+      const filepath = argv.filepath as string;
+      const outputDir = 'temp';
+
+      // --- 1. PARSING ---
       if (!filepath || !fs.existsSync(filepath)) {
         console.error(`Error: File not found at '${filepath}'`);
         process.exit(1);
       }
-
-      // --- 1. PARSING ---
+      
       const scriptContent = fs.readFileSync(filepath, 'utf-8');
       let ast: AST;
       try {
@@ -76,47 +80,70 @@ yargs(hideBin(process.argv))
       //   process.exit(1);
       // }
       
-      // --- 3. FRAME RENDERING ---
-      console.log('\n--- Rendering Frames ---');
+      // --- 3. RENDER & EXPORT SCENE CLIPS ---
+       console.log('\n--- Processing all scenes into video clips ---');
       const renderScale = 2;
-
+      let clipPaths: string[] = [];
+      
       try {
-        await Promise.all(
-          ast.scenes.map(async (scene, index) => {
-            const sceneFrameDir = path.join(outputDir, `scene_${index + 1}_frames`);
+        // This function encapsulates all the work for a single scene.
+        const processScene = async (scene: Scene, index: number): Promise<string | null> => {
+          const sceneIndex = index + 1;
+          console.log(`\n🎬 Starting processing for Scene ${sceneIndex}/${ast.scenes.length}: "${scene.title}"`);
+          
+          const sceneAudioPath = path.join(outputDir, `scene_${sceneIndex}.mp3`);
+          const sceneFrameDir = path.join(outputDir, `scene_${sceneIndex}_frames`);
+          const sceneClipPath = path.resolve(outputDir, `clip_${sceneIndex}.mp4`);
 
-            const scaledDimensions = {
-              width: ast.video.dimensions.width * renderScale,
-              height: ast.video.dimensions.height * renderScale,
-            };
+          if (!fs.existsSync(sceneAudioPath)) {
+            console.warn(`[WARN] Skipping scene ${sceneIndex} because its audio file is missing.`);
+            return null;
+          }
 
-            await renderSceneFrames(scene, scaledDimensions, sceneFrameDir, 30, renderScale);
-          })
-        );
-        console.log('✅ All frames rendered successfully!');
+          const audioDuration = await getAudioDurationInSeconds(sceneAudioPath);
+          const finalClipDuration = Math.max(scene.duration, audioDuration);
+          
+          const scaledDimensions = {
+            width: ast.video.dimensions.width * renderScale,
+            height: ast.video.dimensions.height * renderScale,
+          };
+          
+          // Render frames
+          await renderSceneFrames(scene, scaledDimensions, sceneFrameDir, 30, renderScale, finalClipDuration);
+          
+          // Export individual clip
+          await exportVideo(sceneFrameDir, sceneAudioPath, sceneClipPath, 30, ast.video.dimensions, finalClipDuration);
+          
+          return sceneClipPath;
+        };
+        
+        // Run all scene processing jobs in parallel.
+        const processedClips = await Promise.all(ast.scenes.map(processScene));
+        // Filter out any nulls from skipped scenes.
+        clipPaths = processedClips.filter((p): p is string => p !== null);
+
       } catch (error) {
-        console.error('❌ Failed during frame rendering. Aborting.');
+        console.error('❌ A critical error occurred during scene processing. Aborting.', error);
         process.exit(1);
-      }  
+      }
 
       // --- 4. FINAL VIDEO EXPORT ---
       console.log('\n--- Assembling Final Video ---');
-      try {
-        // For the MVP, we assume one scene. We'll combine clips later.
-        const scene = ast.scenes[0];
-        if (scene) {
-          const sceneFrameDir = path.join(outputDir, `scene_1_frames`);
-          const sceneAudioPath = path.join(outputDir, `scene_1.mp3`);
-          const finalVideoPath = 'output.mp4'; // The final output file
+      if (clipPaths.length > 0) {
+        try {
+          const finalVideoPath = 'output.mp4';
+          console.log('\n--- Assembling Final Video ---');
+          await concatenateClips(clipPaths, finalVideoPath);
 
-          await exportVideo(sceneFrameDir, sceneAudioPath, finalVideoPath, 30, ast.video.dimensions);
-          console.log(`\n🎉🎉🎉 Build complete! Your video is ready at ${finalVideoPath} 🎉🎉🎉`);
-        } else {
-          throw new Error("No scenes found in the script to export.");
+          const endTime = Date.now();
+          const totalTime = ((endTime - startTime) / 1000).toFixed(2);
+          console.log(`\n🎉🎉🎉 Build complete in ${totalTime}s! Your video is ready at ${finalVideoPath} 🎉🎉🎉`);
+        } catch(error) {
+          console.error('❌ Failed during final video concatenation. Aborting.', error);
+          process.exit(1);
         }
-      } catch (error) {
-        console.error('❌ Failed during final video export. Aborting.');
-        process.exit(1);
+      } else {
+        console.warn('\n[WARN] No video clips were generated. Final video not created.');
       }
     }
   )

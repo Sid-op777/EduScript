@@ -236,16 +236,15 @@ function peg$parse(input, options) {
       return {
         type: "Program",
         video: video,
-        scenes: scenes
+        scenes: scenes.map(s => s[1]) 
       };
   }
   function peg$f1(props) {
       return { type: "Video", ...props };
   }
-  function peg$f2(title, props) {    // <--- ADDED '+' HERE
-       // The reduce function correctly merges an array of property objects
-       const scene = props.reduce((acc, prop) => ({ ...acc, ...prop }), {});
-       return { type: "Scene", title: title, ...scene };
+  function peg$f2(title, props) {
+      const scene = props.reduce((acc, prop) => ({ ...acc, ...prop }), {});
+      return { type: "Scene", title: title, ...scene };
   }
   function peg$f3(dimensions) {    return { dimensions }  }
   function peg$f4(prop) {    return prop;  }
@@ -453,27 +452,44 @@ function peg$parse(input, options) {
   }
 
   function peg$parseProgram() {
-    let s0, s1, s2, s3, s4, s5;
+    let s0, s1, s2, s3, s4, s5, s6;
 
     s0 = peg$currPos;
     s1 = peg$parse_();
     s2 = peg$parseVideoBlock();
     if (s2 !== peg$FAILED) {
-      s3 = peg$parse_();
-      s4 = [];
-      s5 = peg$parseSceneBlock();
-      if (s5 !== peg$FAILED) {
-        while (s5 !== peg$FAILED) {
-          s4.push(s5);
-          s5 = peg$parseSceneBlock();
-        }
+      s3 = [];
+      s4 = peg$currPos;
+      s5 = peg$parse_();
+      s6 = peg$parseSceneBlock();
+      if (s6 !== peg$FAILED) {
+        s5 = [s5, s6];
+        s4 = s5;
       } else {
+        peg$currPos = s4;
         s4 = peg$FAILED;
       }
       if (s4 !== peg$FAILED) {
-        s5 = peg$parse_();
+        while (s4 !== peg$FAILED) {
+          s3.push(s4);
+          s4 = peg$currPos;
+          s5 = peg$parse_();
+          s6 = peg$parseSceneBlock();
+          if (s6 !== peg$FAILED) {
+            s5 = [s5, s6];
+            s4 = s5;
+          } else {
+            peg$currPos = s4;
+            s4 = peg$FAILED;
+          }
+        }
+      } else {
+        s3 = peg$FAILED;
+      }
+      if (s3 !== peg$FAILED) {
+        s4 = peg$parse_();
         peg$savedPos = s0;
-        s0 = peg$f0(s2, s4);
+        s0 = peg$f0(s2, s3);
       } else {
         peg$currPos = s0;
         s0 = peg$FAILED;
