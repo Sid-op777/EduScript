@@ -1,5 +1,3 @@
-// src/services/tts.ts
-
 import { ElevenLabsClient } from '@elevenlabs/elevenlabs-js';
 import * as dotenv from 'dotenv';
 import fs from 'fs';

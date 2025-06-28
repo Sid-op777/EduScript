@@ -1,23 +1,26 @@
-// src/parser/parser.d.ts
-
-// This interface describes the structure of the AST our parser produces.
-// We can make this more detailed later, but `any` is a good start.
-export interface AST {
-  type: 'Program';
-  video: any;
-  scenes: Scene[]; // Use the specific Scene type here
+export interface Video {
+  type: 'Video';
+  dimensions: {
+    width: number;
+    height: number;
+  };
 }
 
 export interface Scene {
   type: 'Scene';
   title: string;
   duration: number;
-  narration?: string; // Make narration optional
+  narration?: string;
   visuals: any[];
   timeline: any[];
 }
+    
+export interface AST {
+  type: 'Program';
+  video: Video;
+  scenes: Scene[];
+}
 
-// This interface describes the shape of a Peggy parsing error.
 export interface ParserError extends Error {
   message: string;
   location: {
@@ -34,7 +37,4 @@ export interface ParserError extends Error {
   };
 }
 
-// This is the most important part. We declare the `parse` function.
-// It takes a string (the script content) and returns our AST structure.
-// It can also throw a ParserError.
 export function parse(input: string): AST;
