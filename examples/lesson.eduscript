@@ -13,7 +13,7 @@ scene "First Scene" {
   }
 
   timeline {
-    at(1s) {
+    at(0s) {
       fade("title", in, duration: 1s)
     }
   }

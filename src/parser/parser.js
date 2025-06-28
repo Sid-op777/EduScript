@@ -233,14 +233,14 @@ function peg$parse(input, options) {
   const peg$e34 = peg$classExpectation(["\n"], true, false, false);
 
   function peg$f0(video, scenes) {
-    return {
-      type: "Program",
-      video: video,
-      scenes: scenes
-    };
+      return {
+        type: "Program",
+        video: video,
+        scenes: scenes
+      };
   }
   function peg$f1(props) {
-    return { type: "Video", ...props };
+      return { type: "Video", ...props };
   }
   function peg$f2(title, props) {    // <--- ADDED '+' HERE
        // The reduce function correctly merges an array of property objects
@@ -250,29 +250,29 @@ function peg$parse(input, options) {
   function peg$f3(dimensions) {    return { dimensions }  }
   function peg$f4(prop) {    return prop;  }
   function peg$f5(w, h) {
-    return { width: w, height: h };
+      return { width: w, height: h };
   }
   function peg$f6(d) {    return { duration: d }  }
   function peg$f7(text) {    return { narration: text }  }
   function peg$f8(elements) {
-    return { visuals: elements };
+      return { visuals: elements };
   }
   function peg$f9(element) {    return element;  }
   function peg$f10(content, id, at) {
-    return { type: "text", content, id, at };
+      return { type: "text", content, id, at };
   }
   function peg$f11(id, at, radius) {
-    return { type: "circle", id, at, radius };
+      return { type: "circle", id, at, radius };
   }
   function peg$f12(events) {
-    return { timeline: events };
+      return { timeline: events };
   }
   function peg$f13(time, animations) {
-    return { type: "at", time, animations };
+      return { type: "at", time, animations };
   }
   function peg$f14(cmd) {    return cmd;  }
   function peg$f15(target, direction, duration) {
-    return { type: "fade", target, direction, duration };
+      return { type: "fade", target, direction, duration };
   }
   function peg$f16(val) {    return val  }
   function peg$f17(x, y) {    return { x, y }  }

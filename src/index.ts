@@ -8,6 +8,7 @@ import path from 'path';
 import * as parser from './parser/parser.js';
 import type { AST, ParserError, Scene, Video } from './parser/parser';
 import { generateAudio } from './services/tts2';
+import { exportVideo } from './services/exporter';
 import { renderSceneFrames } from './services/renderer';
 
 console.log('📘 EduScript Engine v0.1');
@@ -54,7 +55,10 @@ yargs(hideBin(process.argv))
       // --- 2. AUDIO GENERATION ---
       console.log('\n--- Generating Audio ---');
 
-      //commented out for testing, it might hit rate limit otherwise
+      //comment out for testing, it might hit rate limit otherwise
+      //simulate sucessfull audio generation after 2 seconds
+      setTimeout(() => {},2000);
+      console.log('✅ All audio generated successfully!');
 
       // try{
       //   await Promise.all(
@@ -71,10 +75,6 @@ yargs(hideBin(process.argv))
       //   console.error(error); 
       //   process.exit(1);
       // }
-
-      //simulate sucessfull audio generation after 2 seconds
-      setTimeout(() => {},2000);
-      console.log('✅ All audio generated successfully!');
       
       // --- 3. FRAME RENDERING ---
       console.log('\n--- Rendering Frames ---');
@@ -89,10 +89,28 @@ yargs(hideBin(process.argv))
       } catch (error) {
         console.error('❌ Failed during frame rendering. Aborting.');
         process.exit(1);
-      }
+      }  
 
-      console.log('\nNext step: Implement the final Exporter.');
-    } 
+      // --- 4. FINAL VIDEO EXPORT ---
+      console.log('\n--- Assembling Final Video ---');
+      try {
+        // For the MVP, we assume one scene. We'll combine clips later.
+        const scene = ast.scenes[0];
+        if (scene) {
+          const sceneFrameDir = path.join(outputDir, `scene_1_frames`);
+          const sceneAudioPath = path.join(outputDir, `scene_1.mp3`);
+          const finalVideoPath = 'output.mp4'; // The final output file
+
+          await exportVideo(sceneFrameDir, sceneAudioPath, finalVideoPath, 30);
+          console.log(`\n🎉🎉🎉 Build complete! Your video is ready at ${finalVideoPath} 🎉🎉🎉`);
+        } else {
+          throw new Error("No scenes found in the script to export.");
+        }
+      } catch (error) {
+        console.error('❌ Failed during final video export. Aborting.');
+        process.exit(1);
+      }
+    }
   )
   .demandCommand(1, 'You must provide a command to run.')
   .help()

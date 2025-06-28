@@ -119,12 +119,12 @@ export function generateSvg(frameState: FrameState, videoDimensions: { width: nu
 
   // Wrap the elements in a full SVG structure with a black background
   return `
-<svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">
-  <rect width="100%" height="100%" fill="black" />
-  ${elementsSvg}
-</svg>
-  `.trim();
-}
+  <svg shape-rendering="geometricPrecision" width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">
+    <rect width="100%" height="100%" fill="black" />
+    ${elementsSvg}
+  </svg>
+    `.trim();
+  }
 
 
 /**
@@ -147,7 +147,7 @@ export async function renderSceneFrames(
   try {
     if (!fs.existsSync(outputDir)) {
       fs.mkdirSync(outputDir, { recursive: true });
-      console.log(`[LOG] Created directory: ${outputDir}`);
+      // console.log(`[LOG] Created directory: ${outputDir}`);
     }
 
     console.log('[LOG] Launching Puppeteer...');
@@ -155,16 +155,16 @@ export async function renderSceneFrames(
       // Adding common arguments that can resolve issues in sandboxed environments (like Docker/Gitpod)
       args: ['--no-sandbox', '--disable-setuid-sandbox'],
     });
-    console.log('[LOG] Puppeteer launched successfully.');
+    // console.log('[LOG] Puppeteer launched successfully.');
 
     const page = await browser.newPage();
-    console.log('[LOG] New browser page created.');
+    // console.log('[LOG] New browser page created.');
 
     await page.setViewport(videoDimensions);
-    console.log(`[LOG] Viewport set to ${videoDimensions.width}x${videoDimensions.height}.`);
+    // console.log(`[LOG] Viewport set to ${videoDimensions.width}x${videoDimensions.height}.`);
 
     const totalFrames = Math.floor(scene.duration * fps);
-    console.log(`[LOG] Preparing to render ${totalFrames} frames.`);
+    // console.log(`[LOG] Preparing to render ${totalFrames} frames.`);
     
     for (let i = 0; i < totalFrames; i++) {
       const timeMs = (i / fps) * 1000;
@@ -172,33 +172,37 @@ export async function renderSceneFrames(
       const frameState = calculateFrameState(scene, timeMs);
       const svgContent = generateSvg(frameState, videoDimensions);
 
-      // Log the first frame's SVG content for debugging
-      if (i === 0) {
-        console.log('[LOG] --- SVG for Frame 0 ---');
-        console.log(svgContent);
-        console.log('[LOG] ----------------------');
-      }
-
-      await page.setContent(svgContent);
+      await page.setContent(`
+        <html style="margin:0;padding:0;">
+          <body style="margin:0;padding:0;overflow:hidden;">
+            ${svgContent}
+          </body>
+        </html>
+      `);
       
       const frameNumber = String(i).padStart(5, '0');
       const framePath = path.join(outputDir, `frame_${frameNumber}.png`);
       
       await page.screenshot({ path: framePath as `${string}.png` });
 
-      // This log will now only appear if the screenshot is successful
-      process.stdout.write(`🖼️  Successfully rendered frame ${i + 1}/${totalFrames}\r`);
+      const barLength = 40;
+      const progress = (i + 1) / totalFrames;
+      const filledLength = Math.round(barLength * progress);
+      const bar = '█'.repeat(filledLength) + '-'.repeat(barLength - filledLength);
+
+      process.stdout.write(
+        `\r🖼️  Rendering frames: [\x1b[32m${bar}\x1b[0m] ${i + 1}/${totalFrames}`
+      );
     }
 
-    console.log(`\n[LOG] Frame loop completed successfully.`);
+    // console.log(`\n[LOG] Frame loop completed successfully.`);
     
     await browser.close();
-    console.log('[LOG] Puppeteer browser closed normally.');
+    // console.log('[LOG] Puppeteer browser closed normally.');
 
-    console.log(`\n✅ Scene frames rendered successfully to ${outputDir}`);
+    // console.log(`\n✅ Scene frames rendered successfully to ${outputDir}`);
 
   } catch (error) {
-    // This is the most important new part!
     console.error('\n\n[FATAL] A critical error occurred during the rendering process.');
     console.error('----------------- ERROR DETAILS -----------------');
     console.error(error);
@@ -206,12 +210,11 @@ export async function renderSceneFrames(
     
     // Ensure the browser is closed even if an error occurs to prevent zombie processes
     if (browser) {
-      console.log('[LOG] Attempting to close browser after error...');
+      // console.log('[LOG] Attempting to close browser after error...');
       await browser.close();
-      console.log('[LOG] Puppeteer browser closed after error.');
+      // console.log('[LOG] Puppeteer browser closed after error.');
     }
     
-    // Re-throw the error so the main process knows to abort
     throw error;
   }
 }

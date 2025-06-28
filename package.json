@@ -21,6 +21,8 @@
   "dependencies": {
     "@elevenlabs/elevenlabs-js": "^2.3.0",
     "@google/genai": "^1.7.0",
+    "@resvg/resvg-js": "^2.6.2",
+    "@vercel/og": "^0.6.8",
     "dotenv": "^16.6.1",
     "mime": "^4.0.7",
     "puppeteer": "^24.10.2",
