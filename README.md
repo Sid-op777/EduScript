@@ -149,7 +149,3 @@ EduScript is licensed under the EduScript License v1.0 — a custom non-commerci
 - Contributions are subject to approval by the project maintainers.
 
 See the [`LICENSE`](./LICENSE) file for the full license text.
-
-Understood. You want a comprehensive, forward-looking README that describes the full vision of the project, tailored for your specific GitHub repository. It should act as a complete project manifest, with a notice at the top indicating that it's a work in progress.
-
-Here is the revised, professional README, updated to your specifications.
