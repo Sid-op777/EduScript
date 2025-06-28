@@ -78,11 +78,19 @@ yargs(hideBin(process.argv))
       
       // --- 3. FRAME RENDERING ---
       console.log('\n--- Rendering Frames ---');
+      const renderScale = 2;
+
       try {
         await Promise.all(
           ast.scenes.map(async (scene, index) => {
             const sceneFrameDir = path.join(outputDir, `scene_${index + 1}_frames`);
-            await renderSceneFrames(scene, ast.video.dimensions, sceneFrameDir, 30);
+
+            const scaledDimensions = {
+              width: ast.video.dimensions.width * renderScale,
+              height: ast.video.dimensions.height * renderScale,
+            };
+
+            await renderSceneFrames(scene, scaledDimensions, sceneFrameDir, 30, renderScale);
           })
         );
         console.log('✅ All frames rendered successfully!');
@@ -101,7 +109,7 @@ yargs(hideBin(process.argv))
           const sceneAudioPath = path.join(outputDir, `scene_1.mp3`);
           const finalVideoPath = 'output.mp4'; // The final output file
 
-          await exportVideo(sceneFrameDir, sceneAudioPath, finalVideoPath, 30);
+          await exportVideo(sceneFrameDir, sceneAudioPath, finalVideoPath, 30, ast.video.dimensions);
           console.log(`\n🎉🎉🎉 Build complete! Your video is ready at ${finalVideoPath} 🎉🎉🎉`);
         } else {
           throw new Error("No scenes found in the script to export.");

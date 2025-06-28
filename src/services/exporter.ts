@@ -14,7 +14,8 @@ export function exportVideo(
   framesDir: string,
   audioPath: string,
   outputPath: string,
-  fps: number
+  fps: number,
+  targetDimensions: { width: number, height: number }
 ): Promise<void> {
   console.log('\n--- Exporting Video ---');
   console.log(`[LOG] Using ffmpeg to combine frames and audio.`);
@@ -25,20 +26,21 @@ export function exportVideo(
     const framePattern = `${framesDir}/frame_%05d.png`;
 
     const command = [
-      'ffmpeg',
-      '-y', // Overwrite output file
-      '-framerate', fps,
-      '-i', `"${framePattern}"`,
-      '-i', `"${audioPath}"`,
-      '-map', '0:v:0', // Map video from first input
-      '-map', '1:a:0', // Map audio from second input
-      '-c:v', 'libx264',
-      '-pix_fmt', 'yuv420p',
-      '-c:a', 'aac',
-      '-b:a', '192k', // Set a good audio bitrate
-      '-shortest',
-      `"${outputPath}"`
-    ].join(' ');
+    'ffmpeg',
+    '-y',
+    '-framerate', fps,
+    '-i', `"${framePattern}"`,
+    '-i', `"${audioPath}"`,
+    '-map', '0:v:0',
+    '-map', '1:a:0',
+    '-vf', `scale=${targetDimensions.width}:${targetDimensions.height}`,
+    '-c:v', 'libx264',
+    '-pix_fmt', 'yuv420p',
+    '-c:a', 'aac',
+    '-b:a', '192k',
+    '-shortest',
+    `"${outputPath}"`
+  ].join(' ');
 
     console.log(`[LOG] Executing ffmpeg command:`);
     console.log(command);
